@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>План питания для снижения веса</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --accent: #0ea5e9;
+      --accent-dark: #0284c7;
+      --border: #e5e7eb;
+      --ok: #16a34a;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin-bottom: 12px;
+      font-size: 28px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 10px rgba(31, 41, 55, 0.05);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 6px;
+      color: #374151;
+    }
+
+    input, select, button {
+      width: 100%;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 15px;
+      outline: none;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+    }
+
+    button {
+      margin-top: 14px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    button:hover {
+      background: var(--accent-dark);
+    }
+
+    .result {
+      display: none;
+      margin-top: 12px;
+      line-height: 1.6;
+    }
+
+    .result h2 {
+      font-size: 22px;
+      margin-bottom: 10px;
+    }
+
+    .notice {
+      color: var(--ok);
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    ul {
+      margin: 8px 0 8px 22px;
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 8px;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .secondary-btn {
+      display: none;
+      background: #111827;
+      max-width: 260px;
+    }
+
+    .secondary-btn:hover {
+      background: #1f2937;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>План питания для стройности</h1>
+    <p class="subtitle">
+      Введите свои данные, и сервис составит пример простого рациона из доступных продуктов
+      и лёгкий недельный план активности.
+    </p>
+
+    <div class="card">
+      <form id="plannerForm">
+        <div class="form-grid">
+          <div>
+            <label for="height">Рост (см)</label>
+            <input id="height" type="number" min="120" max="230" required>
+          </div>
+          <div>
+            <label for="age">Возраст (лет)</label>
+            <input id="age" type="number" min="14" max="90" required>
+          </div>
+          <div>
+            <label for="sex">Пол</label>
+            <select id="sex" required>
+              <option value="male">Мужской</option>
+              <option value="female">Женский</option>
+            </select>
+          </div>
+          <div>
+            <label for="weight">Текущий вес (кг)</label>
+            <input id="weight" type="number" min="35" max="250" step="0.1" required>
+          </div>
+          <div>
+            <label for="targetWeight">Желаемый вес (кг)</label>
+            <input id="targetWeight" type="number" min="35" max="250" step="0.1" required>
+          </div>
+          <div>
+            <label for="lifestyle">Образ жизни</label>
+            <select id="lifestyle" required>
+              <option value="1.2">Сидячий (мало движения)</option>
+              <option value="1.375">Лёгкая активность (1-3 тренировки в неделю)</option>
+              <option value="1.55">Умеренная активность (3-5 тренировок)</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit">Составить план</button>
+        <p class="small">План носит информационный характер и не заменяет консультацию врача.</p>
+      </form>
+    </div>
+
+    <div class="actions">
+      <button id="downloadPdf" class="secondary-btn" type="button">Скачать план в PDF</button>
+    </div>
+
+    <div id="result" class="card result"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById("plannerForm");
+    const resultBox = document.getElementById("result");
+    const downloadPdfBtn = document.getElementById("downloadPdf");
+
+    function round(value) {
+      return Math.round(value);
+    }
+
+    function buildMealPlanForWeek() {
+      const breakfastOptions = [
+        "Овсянка + яблоко, чай без сахара",
+        "Омлет из 2 яиц + огурец/помидор",
+        "Творог 5% (150 г) + банан",
+        "Гречневая каша + варёное яйцо",
+        "Йогурт натуральный + овсяные хлопья",
+        "Овсяноблин + сезонный фрукт",
+        "Рисовая каша + 10-15 г орехов"
+      ];
+      const lunchOptions = [
+        "Гречка + куриная грудка + овощной салат",
+        "Рис + тушёная индейка + капуста",
+        "Суп овощной + цельнозерновой хлеб + яйцо",
+        "Макароны из твёрдых сортов + тунец + огурцы",
+        "Плов облегчённый с курицей и морковью",
+        "Перловка + запечённая рыба + салат",
+        "Картофель отварной + фасоль + овощи"
+      ];
+      const snackOptions = [
+        "Кефир 1% + яблоко",
+        "Творог 2-5% + корица",
+        "Банан + 10 г орехов",
+        "Ряженка 2.5% + цельнозерновой хлебец",
+        "Натуральный йогурт + ягоды",
+        "Груша + кусочек сыра",
+        "Кефир + морковь"
+      ];
+      const dinnerOptions = [
+        "Запечённая рыба + тушёные овощи",
+        "Омлет с брокколи + салат",
+        "Тушёная фасоль + овощи",
+        "Курица + кабачок на сковороде без масла",
+        "Творог + огурец/зелень",
+        "Минтай на пару + цветная капуста",
+        "Овощное рагу + яйцо"
+      ];
+
+      const days = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"];
+      return days.map((day, i) => ({
+        day,
+        breakfast: breakfastOptions[i],
+        lunch: lunchOptions[i],
+        snack: snackOptions[i],
+        dinner: dinnerOptions[i]
+      }));
+    }
+
+    function buildWorkoutPlan(lifestyleFactor) {
+      const base = [
+        "Ежедневно: ходьба 25-40 минут (быстрым шагом).",
+        "2-3 раза в неделю: лёгкая домашняя тренировка 15-20 минут (приседания, планка, выпады, отжимания от стены).",
+        "1-2 дня в неделю: мягкая растяжка 10-15 минут."
+      ];
+
+      if (lifestyleFactor <= 1.2) {
+        base.push("Каждый час при сидячей работе: вставать и двигаться 2-3 минуты.");
+      } else {
+        base.push("В один из дней добавьте спокойную велопрогулку или плавание 30 минут.");
+      }
+      return base;
+    }
+
+    downloadPdfBtn.addEventListener("click", function () {
+      if (resultBox.style.display !== "block" || !window.html2pdf) {
+        return;
+      }
+
+      const options = {
+        margin: 10,
+        filename: "plan-pitaniya.pdf",
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+      };
+      window.html2pdf().set(options).from(resultBox).save();
+    });
+
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+
+      const height = Number(document.getElementById("height").value);
+      const age = Number(document.getElementById("age").value);
+      const sex = document.getElementById("sex").value;
+      const weight = Number(document.getElementById("weight").value);
+      const targetWeight = Number(document.getElementById("targetWeight").value);
+      const lifestyleFactor = Number(document.getElementById("lifestyle").value);
+
+      if (targetWeight >= weight) {
+        resultBox.style.display = "block";
+        resultBox.innerHTML = "<h2>Проверьте данные</h2><p>Желаемый вес должен быть меньше текущего, если цель — постройнеть.</p>";
+        downloadPdfBtn.style.display = "none";
+        return;
+      }
+
+      // Формула Миффлина-Сан Жеора с учетом пола.
+      const sexFactor = sex === "male" ? 5 : -161;
+      const bmr = 10 * weight + 6.25 * height - 5 * age + sexFactor;
+      const supportCalories = bmr * lifestyleFactor;
+      const deficitCalories = supportCalories - 350;
+      const safeCalories = Math.max(1200, deficitCalories);
+
+      const weeksToGoal = Math.ceil((weight - targetWeight) / 0.5);
+      const weekMenu = buildMealPlanForWeek();
+      const workouts = buildWorkoutPlan(lifestyleFactor);
+
+      resultBox.style.display = "block";
+      downloadPdfBtn.style.display = "block";
+      resultBox.innerHTML = `
+        <h2>Ваш персональный план</h2>
+        <p><strong>Поддерживающая калорийность:</strong> ~${round(supportCalories)} ккал/день</p>
+        <p><strong>Для снижения веса:</strong> ~${round(safeCalories)} ккал/день</p>
+        <p><strong>Ориентировочный срок до цели:</strong> ${weeksToGoal} нед.</p>
+
+        <h3>Рацион на 7 дней из доступных продуктов</h3>
+        ${weekMenu.map(day => `
+          <p><strong>${day.day}</strong></p>
+          <ul>
+            <li>Завтрак: ${day.breakfast}</li>
+            <li>Обед: ${day.lunch}</li>
+            <li>Перекус: ${day.snack}</li>
+            <li>Ужин: ${day.dinner}</li>
+          </ul>
+        `).join("")}
+
+        <h3>План лёгких тренировок</h3>
+        <ul>${workouts.map(item => `<li>${item}</li>`).join("")}</ul>
+
+        <p class="notice">Главное: стабильность, вода 1.5-2 л/день и сон 7-8 часов.</p>
+      `;
+    });
+  </script>
+</body>
+</html>
